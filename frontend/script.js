@@ -85,8 +85,11 @@ function loadQuestion() {
     editQuestionBtn.style.display = token ? 'inline-block' : 'none';
     prevBtn.style.display = nextBtn.style.display = 'inline-block';
     scoreboardEl.innerText = `Score: ${score} | Attempts: ${attempts}`;
+
+    // ✅ Updated logic
     prevBtn.disabled = currentQuestionIndex === 0;
-    nextBtn.disabled = currentQuestions.length - 1;
+    nextBtn.disabled = currentQuestionIndex >= currentQuestions.length - 1;
+
   } else {
     questionEl.innerText = "Quiz Completed!";
     optionsEl.innerHTML = '';
@@ -277,6 +280,21 @@ chapterSelect.onchange = async () => {
   quizArea.style.display = 'block';
   restartBtn.style.display = 'inline-block';
   loadQuestion();
+};
+
+// ✅✅✅ Add this at the end
+nextBtn.onclick = () => {
+  if (currentQuestionIndex < currentQuestions.length - 1) {
+    currentQuestionIndex++;
+    loadQuestion();
+  }
+};
+
+prevBtn.onclick = () => {
+  if (currentQuestionIndex > 0) {
+    currentQuestionIndex--;
+    loadQuestion();
+  }
 };
 
 window.onload = () => {
