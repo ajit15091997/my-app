@@ -86,7 +86,6 @@ function loadQuestion() {
     prevBtn.style.display = nextBtn.style.display = 'inline-block';
     scoreboardEl.innerText = `Score: ${score} | Attempts: ${attempts}`;
 
-    // ✅ Updated logic
     prevBtn.disabled = currentQuestionIndex === 0;
     nextBtn.disabled = currentQuestionIndex >= currentQuestions.length - 1;
 
@@ -99,12 +98,25 @@ function loadQuestion() {
   }
 }
 
+// ✅ Updated Logic
 function selectOption(el, correct, explanation) {
   document.querySelectorAll('.option').forEach(o => {
     o.style.pointerEvents = 'none';
-    o.innerText.trim() === correct.trim() ? o.classList.add('correct') : o.classList.add('wrong');
+    o.classList.remove('correct', 'wrong');
   });
-  if (el.innerText.trim() === correct.trim()) score++;
+
+  if (el.innerText.trim() === correct.trim()) {
+    el.classList.add('correct');
+    score++;
+  } else {
+    el.classList.add('wrong');
+    document.querySelectorAll('.option').forEach(o => {
+      if (o.innerText.trim() === correct.trim()) {
+        o.classList.add('correct');
+      }
+    });
+  }
+
   if (explanation?.trim()) {
     explanationText.innerText = `Explanation: ${explanation}`;
     explanationText.style.display = 'block';
@@ -282,7 +294,6 @@ chapterSelect.onchange = async () => {
   loadQuestion();
 };
 
-// ✅✅✅ Add this at the end
 nextBtn.onclick = () => {
   if (currentQuestionIndex < currentQuestions.length - 1) {
     currentQuestionIndex++;
