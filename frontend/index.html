@@ -61,6 +61,47 @@
 
     <!-- Only Supreme Admin Sees This -->
     <button id="addNewAdminBtn" style="display:none;">Add New Admin</button>
+
+    <!-- ========== BULK UPLOAD SECTION (New) ========== -->
+    <div id="bulkUploadSection" style="margin-top:30px; border-top:1px solid #FFD700; padding-top:20px;">
+      <h2>Bulk Upload Questions (Flexible Formats)</h2>
+      <p style="color:#EAEAEA; font-size:14px; margin-bottom:10px;">
+        Supported formats:
+        <ul style="color:#EAEAEA; margin-left:16px;">
+          <li>Pipe format (one line): <code>Q | opt1 | opt2 | opt3 | opt4 | correct | explanation(optional)</code></li>
+          <li>Exam-style block (multiple lines):
+            <pre style="display:inline;color:#EAEAEA">Question line
+A) opt1
+B) opt2
+C) opt3
+D) opt4
+सही उत्तर: B</pre>
+          </li>
+          <li>Prefixes allowed: A), a), 1), १), A., 1. etc. Correct answer markers supported:
+            <em>सही उत्तर / सही जवाब / correct answer / CORRECT ANSWER / right answer / answer</em>
+          </li>
+        </ul>
+      </p>
+
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <input type="text" id="bulkSubject" placeholder="Subject (or keep same as above)" style="flex:1; min-width:160px;">
+        <input type="text" id="bulkChapter" placeholder="Chapter (or keep same as above)" style="flex:1; min-width:160px;">
+      </div>
+
+      <textarea id="bulkTextarea" class="bulk-textarea" placeholder="Paste questions here (pipe-lines or exam-blocks). Use blank line between blocks if using exam-style." rows="12"></textarea>
+      <div style="display:flex; gap:10px; margin-top:8px;">
+        <button id="previewBulkBtn">Preview</button>
+        <button id="uploadBulkBtn">Upload Bulk</button>
+        <button id="clearBulkBtn">Clear</button>
+      </div>
+
+      <div id="bulkPreview" style="display:none; margin-top:12px; background:#0A1128; padding:12px; border-radius:8px; border:1px solid #FFD700;">
+        <strong style="color:#FFD700">Preview:</strong>
+        <div id="bulkPreviewContent" style="margin-top:8px; color:#EAEAEA; max-height:260px; overflow:auto;"></div>
+      </div>
+    </div>
+    <!-- ========== END BULK UPLOAD SECTION ========== -->
+
   </div>
 
   <!-- Add New Admin Form -->
@@ -114,4 +155,4 @@
 
 <script src="script.js"></script>
 </body>
-  </html>
+    </html>
