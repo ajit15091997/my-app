@@ -1,3 +1,4 @@
+// script.js (final with flexible bulk parser)
 const BASE_URL = "https://my-app-v7hb.onrender.com";
 let token = null, isSupreme = false;
 const subjectSelect = document.getElementById('subjectSelect');
@@ -49,6 +50,16 @@ const deleteSelectedAdminsBtn = document.getElementById('deleteSelectedAdminsBtn
 
 let currentQuestions = [], currentQuestionIndex = 0, attempts = 0, score = 0, editingQuestion = null;
 
+// BULK UI elements
+const bulkTextarea = document.getElementById('bulkTextarea');
+const bulkSubject = document.getElementById('bulkSubject');
+const bulkChapter = document.getElementById('bulkChapter');
+const previewBulkBtn = document.getElementById('previewBulkBtn');
+const uploadBulkBtn = document.getElementById('uploadBulkBtn');
+const clearBulkBtn = document.getElementById('clearBulkBtn');
+const bulkPreview = document.getElementById('bulkPreview');
+const bulkPreviewContent = document.getElementById('bulkPreviewContent');
+
 async function fetchSubjects() {
   const res = await fetch(`${BASE_URL}/api/subjects`);
   const subs = await res.json();
@@ -98,7 +109,6 @@ function loadQuestion() {
   }
 }
 
-// ✅ Updated Logic
 function selectOption(el, correct, explanation) {
   document.querySelectorAll('.option').forEach(o => {
     o.style.pointerEvents = 'none';
@@ -191,10 +201,8 @@ editQuestionBtn.onclick = () => {
 };
 
 loginBtn.onclick = async () => {
-  console.log('🔐 Login attempt started');
   const username = usernameInput.value.trim();
   const password = passwordInput.value.trim();
-  console.log('Username entered:', username);
 
   try {
     const res = await fetch(`${BASE_URL}/api/admin/login`, {
@@ -204,7 +212,6 @@ loginBtn.onclick = async () => {
     });
 
     const data = await res.json();
-    console.log('📨 Server response:', data);
 
     if (res.ok) {
       token = data.token;
@@ -213,10 +220,8 @@ loginBtn.onclick = async () => {
       alert('✅ Logged in successfully!');
     } else {
       loginError.innerText = data.error || '❌ Login failed';
-      console.log('❌ Login failed:', data.error || 'Unknown error');
     }
   } catch (err) {
-    console.log('🔥 Login fetch error:', err);
     loginError.innerText = "⚠️ Unable to connect to server";
   }
 };
@@ -312,3 +317,178 @@ window.onload = () => {
   fetchSubjects();
   toggleAdmin(false);
 };
+
+/* ================= FLEXIBLE BULK PARSER ================= */
+
+// Helpers
+function stripLabelPrefix(line) {
+  // remove common prefixes like "A) ", "a) ", "1) ", "१) ", "A. ", "1. ", "A -", "A:", etc.
+  return line.replace(/^\s*[A-Za-z\u0966-\u096F0-9]+[\)\.\-\:\s]+/u, '').trim();
+}
+function normalize(s) {
+  return (s || '').toString().replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+// Detect correct-answer line using many keywords
+function matchCorrectLine(line) {
+  const regex = /(सही\s*(उत्तर|जवाब)|correct\s*answer|right\s*answer|answer|ANSWER|CORRECT ANSWER)\s*[:\-]?\s*(.*)/i;
+  const m = line.match(regex);
+  if (m) return m[3].trim();
+  return null;
+}
+
+// parse single pipe-style line
+function parsePipeLine(line, subject, chapter) {
+  const parts = line.split('|').map(p => p.trim()).filter(p => p !== '');
+  // minimum 6 parts: q + 4 options + correct
+  if (parts.length < 6) return { error: 'Pipe format requires at least 6 parts (question|opt1|opt2|opt3|opt4|correct|explanation?)' };
+  const [questionText, o1, o2, o3, o4, correct, ...rest] = parts;
+  const options = [o1, o2, o3, o4];
+  const explanation = rest.join(' | ').trim();
+  // validate
+  if (!questionText) return { error: 'Empty question' };
+  if (options.some(o => !o)) return { error: 'All 4 options required' };
+  if (!correct) return { error: 'Correct answer missing' };
+  // determine correct text: could be letter/number or full text
+  let correctText = correct;
+  // if correct is single letter or number -> map to option
+  const single = correct.trim().toLowerCase();
+  if (/^[a-d]$/i.test(single) || /^[\u0966-\u096F1-4]$/.test(single) || /^[1-4]$/.test(single)) {
+    // map letters/numbers to index
+    const map = { 'a':0,'b':1,'c':2,'d':3,'1':0,'2':1,'3':2,'4':3, '१':0,'२':1,'३':2,'४':3 };
+    const idx = map[single];
+    if (idx === undefined) return { error: 'Cannot map correct option' };
+    correctText = options[idx];
+  } else {
+    // may contain "B) text", remove prefix
+    correctText = stripLabelPrefix(correctText);
+    // if still not matching any option, we will do loose match later in validation
+  }
+
+  return {
+    question: questionText,
+    options,
+    correct: correctText,
+    explanation
+  };
+}
+
+// parse exam-style block (multiple lines)
+function parseBlock(blockText, subject, chapter) {
+  const lines = blockText.split(/\r?\n/).map(l => l.trim()).filter(l => l !== '');
+  if (!lines.length) return { error: 'Empty block' };
+
+  // If single-line with pipes, delegate
+  if (lines.length === 1 && lines[0].includes('|')) return parsePipeLine(lines[0], subject, chapter);
+
+  // First line(s) until an option-like line appear -> question
+  // Option-like line: starts with A)/a)/1)/१)/ or looks like option (we'll try to detect when 4 options gathered)
+  const optionCandidates = [];
+  let qIndex = 0;
+  // find first option-like line index
+  for (let i = 1; i < lines.length && optionCandidates.length < 4; i++) {
+    // check if line looks like option (has prefix) or starts with letter like A) or number
+    const l = lines[i];
+    const hasPrefix = /^[\s]*([A-Za-z\u0966-\u096F0-9]+)[\)\.\-\:]/u.test(l);
+    // also if line length small and contains ')', treat as option
+    if (hasPrefix || (l.length < 200 && (l.includes(')') || l.includes('.')))) {
+      optionCandidates.push(l);
+      if (optionCandidates.length === 1 && qIndex === 0) qIndex = i - 1;
+    } else {
+      // if we haven't yet found options, continue accumulating until options found
+      if (optionCandidates.length === 0) qIndex = 0;
+      else optionCandidates.push(l);
+    }
+  }
+
+  // fallback detection: if we didn't detect options by prefix, but have at least 5 lines, assume lines 1..4 are options
+  let questionText = lines[0];
+  let options = [];
+  let correctLine = null;
+  let explanation = '';
+
+  // Heuristic approach:
+  if (lines.length >= 6) {
+    // common pattern: q, opt1, opt2, opt3, opt4, correct (then maybe explanation)
+    questionText = lines[0];
+    options = lines.slice(1, 5).map(l => stripLabelPrefix(l));
+    // find correct line among remaining lines
+    for (let i = 5; i < lines.length; i++) {
+      const possible = matchCorrectLine(lines[i]);
+      if (possible !== null) {
+        correctLine = possible;
+        // if there are any lines after this, join as explanation
+        if (i + 1 < lines.length) explanation = lines.slice(i + 1).join(' ');
+        break;
+      }
+    }
+    // if correctLine still null, maybe the 5th line itself contains "सही" etc.
+    if (!correctLine && lines[5]) {
+      const maybe = matchCorrectLine(lines[4]) || matchCorrectLine(lines[5]);
+      if (maybe) correctLine = maybe;
+    }
+  } else {
+    // Short blocks handling: try to find options by detecting 4 option-like lines anywhere
+    const optLines = [];
+    let correctCandidate = null;
+    for (let i = 1; i < lines.length; i++) {
+      const l = lines[i];
+      const isCorrectMarker = matchCorrectLine(l);
+      if (isCorrectMarker !== null) { correctCandidate = isCorrectMarker; continue; }
+      optLines.push(l);
+    }
+    if (optLines.length >= 4) {
+      questionText = lines[0];
+      options = optLines.slice(0, 4).map(l => stripLabelPrefix(l));
+      if (correctCandidate) correctLine = correctCandidate;
+    } else {
+      return { error: 'Could not detect 4 options in block' };
+    }
+  }
+
+  // If correctLine still null, maybe last line contains direct correct text
+  if (!correctLine) {
+    // look for any line that begins with letter/number only like "A" or "b) ...", or contains "Correct"
+    for (let i = 1; i < lines.length; i++) {
+      const m = matchCorrectLine(lines[i]);
+      if (m) { correctLine = m; break; }
+    }
+  }
+
+  // If correctLine still null, maybe the last line is like "सही उत्तर: b) text" or simply "B) text"
+  if (!correctLine) {
+    // try last line stripping label
+    const last = lines[lines.length - 1];
+    const maybe = last;
+    const pref = stripLabelPrefix(maybe);
+    // if pref equals one of options => treat as correct text
+    if (options.find(o => normalize(o) === normalize(pref))) {
+      correctLine = pref;
+      // explanation none
+    }
+  }
+
+  // Now determine correct text
+  let correctText = '';
+  if (correctLine) {
+    const cl = correctLine.trim();
+    // if cl is a single letter/number
+    const single = cl.replace(/\)/g,'').replace(/\./g,'').trim().toLowerCase();
+    if (/^[a-d]$/i.test(single) || /^[\u0966-\u096F1-4]$/.test(single) || /^[1-4]$/.test(single)) {
+      const map = { 'a':0,'b':1,'c':2,'d':3,'1':0,'2':1,'3':2,'4':3, '१':0,'२':1,'३':2,'४':3 };
+      const idx = map[single];
+      if (idx !== undefined && options[idx]) correctText = options[idx];
+      else correctText = cl; // leave as-is
+    } else {
+      // remove label prefix if present
+      correctText = stripLabelPrefix(cl);
+      // if it's exactly one of options, fine; else we'll accept and later validate
+    }
+  } else {
+    // no explicit correct line: attempt to find line that starts with "Correct Answer" or contains option letter
+    // fallback: assume option 1 as correct? NO — better to error
+    return { error: 'Could not detect correct answer line' };
+  }
+
+  return {
+  
