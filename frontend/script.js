@@ -1,20 +1,30 @@
 const BASE_URL = "https://my-app-v7hb.onrender.com";
 let token = null, isSupreme = false;
+
+// DOM Elements
 const subjectSelect = document.getElementById('subjectSelect');
 const chapterSelect = document.getElementById('chapterSelect');
-const quizArea = document.getElementById('quizArea');
 const questionEl = document.getElementById('question');
 const optionsEl = document.getElementById('options');
 const explanationText = document.getElementById('explanationText');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
 const restartBtn = document.getElementById('restart');
 const deleteSubjectBtn = document.getElementById('deleteSubject');
 const deleteChapterBtn = document.getElementById('deleteChapter');
 const deleteQuestionBtn = document.getElementById('deleteQuestion');
 const editQuestionBtn = document.getElementById('editQuestion');
 const scoreboardEl = document.getElementById('scoreboard');
-const prevBtn = document.getElementById('prevBtn');
-const nextBtn = document.getElementById('nextBtn');
+const adminPanel = document.getElementById('adminPanel');
+const loginForm = document.getElementById('loginForm');
+const logoutSection = document.getElementById('logoutSection');
+const addNewAdminBtn = document.getElementById('addNewAdminBtn');
+const addAdminForm = document.getElementById('addAdminForm');
+const deleteAdminSection = document.getElementById('deleteAdminSection');
+const adminList = document.getElementById('adminList');
+const bulkUploadSection = document.getElementById('bulkUploadSection');
 
+// Form Inputs
 const newSubject = document.getElementById('newSubject');
 const newChapter = document.getElementById('newChapter');
 const newQuestion = document.getElementById('newQuestion');
@@ -26,288 +36,21 @@ const correctAnswer = document.getElementById('correctAnswer');
 const answerExplanation = document.getElementById('answerExplanation');
 const addQuestionBtn = document.getElementById('addQuestion');
 
-const loginForm = document.getElementById('loginForm');
+// Login Inputs
 const usernameInput = document.getElementById('username');
 const passwordInput = document.getElementById('password');
 const loginBtn = document.getElementById('loginBtn');
 const loginError = document.getElementById('loginError');
-
-const adminPanel = document.getElementById('adminPanel');
-const logoutSection = document.getElementById('logoutSection');
 const logoutBtn = document.getElementById('logoutBtn');
 
-const addNewAdminBtn = document.getElementById('addNewAdminBtn');
-const addAdminForm = document.getElementById('addAdminForm');
+// Add Admin Inputs
 const newAdminUsername = document.getElementById('newAdminUsername');
 const newAdminPassword = document.getElementById('newAdminPassword');
 const createAdminBtn = document.getElementById('createAdminBtn');
 const cancelCreateAdminBtn = document.getElementById('cancelCreateAdminBtn');
-
-const deleteAdminSection = document.getElementById('deleteAdminSection');
-const adminList = document.getElementById('adminList');
 const deleteSelectedAdminsBtn = document.getElementById('deleteSelectedAdminsBtn');
 
-let currentQuestions = [], currentQuestionIndex = 0, attempts = 0, score = 0, editingQuestion = null;
-
-async function fetchSubjects() {
-  const res = await fetch(`${BASE_URL}/api/subjects`);
-  const subs = await res.json();
-  subjectSelect.innerHTML = '<option value="">Select Subject</option>';
-  subs.forEach(sub => {
-    const opt = document.createElement('option');
-    opt.value = opt.innerText = sub;
-    subjectSelect.appendChild(opt);
-  });
-}
-
-async function fetchChapters(sub) {
-  return (await fetch(`${BASE_URL}/api/subjects/${sub}/chapters`)).json();
-}
-
-async function fetchQuestions(sub, ch) {
-  return (await fetch(`${BASE_URL}/api/subjects/${sub}/chapters/${ch}/questions`)).json();
-}
-
-function loadQuestion() {
-  optionsEl.innerHTML = '';
-  explanationText.style.display = 'none';
-  if (currentQuestionIndex < currentQuestions.length) {
-    const q = currentQuestions[currentQuestionIndex];
-    questionEl.innerText = q.question;
-    q.options.forEach(opt => {
-      const div = document.createElement('div');
-      div.classList.add('option');
-      div.innerText = opt;
-      div.onclick = () => selectOption(div, q.correct, q.explanation);
-      optionsEl.appendChild(div);
-    });
-    deleteQuestionBtn.style.display = token ? 'inline-block' : 'none';
-    editQuestionBtn.style.display = token ? 'inline-block' : 'none';
-    prevBtn.style.display = nextBtn.style.display = 'inline-block';
-    scoreboardEl.innerText = `Score: ${score} | Attempts: ${attempts}`;
-
-    prevBtn.disabled = currentQuestionIndex === 0;
-    nextBtn.disabled = currentQuestionIndex >= currentQuestions.length - 1;
-
-  } else {
-    questionEl.innerText = "Quiz Completed!";
-    optionsEl.innerHTML = '';
-    scoreboardEl.innerText = `Final Score: ${score} / ${attempts}`;
-    restartBtn.style.display = 'inline-block';
-    [prevBtn, nextBtn, deleteQuestionBtn, editQuestionBtn].forEach(b => b.style.display = 'none');
-  }
-}
-
-function selectOption(el, correct, explanation) {
-  document.querySelectorAll('.option').forEach(o => {
-    o.style.pointerEvents = 'none';
-    o.classList.remove('correct', 'wrong');
-  });
-
-  if (el.innerText.trim() === correct.trim()) {
-    el.classList.add('correct');
-    score++;
-  } else {
-    el.classList.add('wrong');
-    document.querySelectorAll('.option').forEach(o => {
-      if (o.innerText.trim() === correct.trim()) {
-        o.classList.add('correct');
-      }
-    });
-  }
-
-  if (explanation?.trim()) {
-    explanationText.innerText = `Explanation: ${explanation}`;
-    explanationText.style.display = 'block';
-  }
-  attempts++;
-  scoreboardEl.innerText = `Score: ${score} | Attempts: ${attempts}`;
-}
-
-restartBtn.onclick = () => {
-  subjectSelect.value = '';
-  chapterSelect.innerHTML = '<option value="">Select Chapter</option>';
-  chapterSelect.disabled = true;
-  quizArea.style.display = 'none';
-  scoreboardEl.innerText = '';
-  fetchSubjects();
-};
-
-addQuestionBtn.onclick = async () => {
-  const payload = {
-    subject: newSubject.value.trim(), chapter: newChapter.value.trim(),
-    question: newQuestion.value.trim(), options: [option1.value.trim(), option2.value.trim(), option3.value.trim(), option4.value.trim()],
-    correct: correctAnswer.value.trim(), explanation: answerExplanation.value.trim()
-  };
-  if (!payload.subject || !payload.chapter || !payload.question || payload.options.includes('') || !payload.correct) return alert('Please fill inputs!');
-  const method = editingQuestion ? 'PUT' : 'POST';
-  const url = editingQuestion ? `${BASE_URL}/api/questions/${editingQuestion}` : `${BASE_URL}/api/questions`;
-  const res = await fetch(url, {
-    method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify(payload)
-  });
-  const data = await res.json();
-  alert(res.ok ? (editingQuestion ? 'Question Updated!' : 'Question Added!') : (data.error || 'Failed'));
-  editingQuestion = null; addQuestionBtn.innerText = 'Add Question';
-  [newSubject, newChapter, newQuestion, option1, option2, option3, option4, correctAnswer, answerExplanation].forEach(i => i.value = '');
-  fetchSubjects();
-};
-
-deleteSubjectBtn.onclick = async () => {
-  if (!subjectSelect.value || !confirm(`Delete subject "${subjectSelect.value}"?`)) return;
-  const res = await fetch(`${BASE_URL}/api/subjects/${subjectSelect.value}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-  alert(res.ok ? 'Deleted!' : 'Failed');
-  fetchSubjects();
-};
-
-deleteChapterBtn.onclick = async () => {
-  if (!chapterSelect.value || !confirm(`Delete chapter "${chapterSelect.value}"?`)) return;
-  const url = `${BASE_URL}/api/subjects/${subjectSelect.value}/chapters/${chapterSelect.value}`;
-  const res = await fetch(url, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-  alert(res.ok ? 'Deleted!' : 'Failed');
-  fetchSubjects();
-  subjectSelect.dispatchEvent(new Event('change'));
-};
-
-deleteQuestionBtn.onclick = async () => {
-  const q = currentQuestions[currentQuestionIndex];
-  if (!q || !confirm('Delete this question?')) return;
-  const res = await fetch(`${BASE_URL}/api/questions/${q._id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
-  alert(res.ok ? 'Deleted!' : 'Failed');
-  subjectSelect.dispatchEvent(new Event('change'));
-};
-
-editQuestionBtn.onclick = () => {
-  const q = currentQuestions[currentQuestionIndex];
-  editingQuestion = q._id;
-  newSubject.value = subjectSelect.value;
-  newChapter.value = chapterSelect.value;
-  newQuestion.value = q.question;
-  [option1,option2,option3,option4].forEach((el,i) => el.value = q.options[i]);
-  correctAnswer.value = q.correct;
-  answerExplanation.value = q.explanation;
-  addQuestionBtn.innerText = 'Save Edit';
-};
-
-loginBtn.onclick = async () => {
-  try {
-    const username = usernameInput.value.trim();
-    const password = passwordInput.value.trim();
-    const res = await fetch(`${BASE_URL}/api/admin/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const data = await res.json();
-    if (res.ok) {
-      token = data.token;
-      isSupreme = data.supreme;
-      toggleAdmin(true);
-      alert('✅ Logged in successfully!');
-    } else {
-      loginError.innerText = data.error || '❌ Login failed';
-    }
-  } catch {
-    loginError.innerText = "⚠️ Unable to connect to server";
-  }
-};
-
-logoutBtn.onclick = () => {
-  token = null; isSupreme = false;
-  toggleAdmin(false);
-};
-
-addNewAdminBtn.onclick = () => addAdminForm.style.display = 'block';
-cancelCreateAdminBtn.onclick = () => addAdminForm.style.display = 'none';
-createAdminBtn.onclick = async () => {
-  const res = await fetch(`${BASE_URL}/api/admins`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ username: newAdminUsername.value.trim(), password: newAdminPassword.value.trim() })
-  });
-  const data = await res.json();
-  alert(res.ok ? 'Admin Created!' : (data.error || 'Failed'));
-  addAdminForm.style.display = 'none'; loadAdminList();
-};
-
-deleteSelectedAdminsBtn.onclick = async () => {
-  const sel = [...adminList.querySelectorAll('input:checked')].map(c => c.value);
-  if (!sel.length || !confirm('Delete selected?')) return;
-  const res = await fetch(`${BASE_URL}/api/admins`, {
-    method: 'DELETE', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ usernames: sel })
-  });
-  alert(res.ok ? 'Deleted!' : 'Failed');
-  loadAdminList();
-};
-
-async function loadAdminList() {
-  adminList.innerHTML = '';
-  const res = await fetch(`${BASE_URL}/api/admins`, { headers: { Authorization: `Bearer ${token}` } });
-  if (!res.ok) return;
-  const arr = await res.json();
-  arr.forEach(a => {
-    const li = document.createElement('li');
-    li.innerHTML = `<label><input type="checkbox" value="${a.username}"> ${a.username}</label>`;
-    adminList.appendChild(li);
-  });
-}
-
-function toggleAdmin(loggedIn) {
-  loginForm.style.display = loggedIn ? 'none' : 'block';
-  adminPanel.style.display = logoutSection.style.display = loggedIn ? 'block' : 'none';
-  addNewAdminBtn.style.display = (loggedIn && isSupreme) ? 'inline-block' : 'none';
-  deleteAdminSection.style.display = (loggedIn && isSupreme) ? 'block' : 'none';
-  deleteSubjectBtn.style.display = subjectSelect.value && loggedIn ? 'inline-block' : 'none';
-  deleteChapterBtn.style.display = chapterSelect.value && loggedIn ? 'inline-block' : 'none';
-
-  // ✅ Bulk upload section toggle
-  toggleBulkSection(loggedIn);
-
-  fetchSubjects();
-}
-
-subjectSelect.onchange = async () => {
-  deleteSubjectBtn.style.display = subjectSelect.value && token ? 'inline-block' : 'none';
-  const chaps = await fetchChapters(subjectSelect.value);
-  chapterSelect.disabled = false;
-  chapterSelect.innerHTML = '<option>Select Chapter</option>';
-  chaps.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = opt.innerText = c;
-    chapterSelect.appendChild(opt);
-  });
-};
-
-chapterSelect.onchange = async () => {
-  deleteChapterBtn.style.display = chapterSelect.value && token ? 'inline-block' : 'none';
-  currentQuestions = await fetchQuestions(subjectSelect.value, chapterSelect.value);
-  currentQuestionIndex = attempts = score = 0;
-  quizArea.style.display = 'block';
-  restartBtn.style.display = 'inline-block';
-  loadQuestion();
-};
-
-nextBtn.onclick = () => {
-  if (currentQuestionIndex < currentQuestions.length - 1) {
-    currentQuestionIndex++;
-    loadQuestion();
-  }
-};
-
-prevBtn.onclick = () => {
-  if (currentQuestionIndex > 0) {
-    currentQuestionIndex--;
-    loadQuestion();
-  }
-};
-
-window.onload = () => {
-  fetchSubjects();
-  toggleAdmin(false);
-};
-
-/* ---------------- BULK UPLOAD FEATURE BELOW ---------------- */
-const bulkUploadSection = document.getElementById('bulkUploadSection');
+// Bulk Upload Inputs
 const bulkSubject = document.getElementById('bulkSubject');
 const bulkChapter = document.getElementById('bulkChapter');
 const bulkTextarea = document.getElementById('bulkTextarea');
@@ -315,73 +58,145 @@ const previewBulkBtn = document.getElementById('previewBulkBtn');
 const uploadBulkBtn = document.getElementById('uploadBulkBtn');
 const bulkPreview = document.getElementById('bulkPreview');
 
+// Variables
+let currentQuestions = [];
+let currentQuestionIndex = 0;
+let score = 0;
+let attempts = 0;
+let editingQuestion = null;
 let bulkQuestions = [];
 
-function toggleBulkSection(show) {
-  bulkUploadSection.style.display = show ? 'block' : 'none';
+// Fetch Functions
+async function fetchSubjects() {
+  const res = await fetch(`${BASE_URL}/api/subjects`);
+  const data = await res.json();
+  subjectSelect.innerHTML = `<option value="">Select Subject</option>`;
+  data.forEach(sub => {
+    const opt = document.createElement('option');
+    opt.value = opt.textContent = sub;
+    subjectSelect.appendChild(opt);
+  });
 }
 
+async function fetchChapters(subject) {
+  const res = await fetch(`${BASE_URL}/api/subjects/${subject}/chapters`);
+  return res.json();
+}
+
+async function fetchQuestions(subject, chapter) {
+  const res = await fetch(`${BASE_URL}/api/subjects/${subject}/chapters/${chapter}/questions`);
+  return res.json();
+}
+
+// Quiz Functions
+function loadQuestion() {
+  optionsEl.innerHTML = '';
+  explanationText.style.display = 'none';
+
+  if (currentQuestionIndex < currentQuestions.length) {
+    const q = currentQuestions[currentQuestionIndex];
+    questionEl.textContent = q.question;
+    q.options.forEach(opt => {
+      const div = document.createElement('div');
+      div.classList.add('option');
+      div.textContent = opt;
+      div.onclick = () => selectOption(div, q.correct, q.explanation);
+      optionsEl.appendChild(div);
+    });
+    scoreboardEl.textContent = `Score: ${score} | Attempts: ${attempts}`;
+    prevBtn.disabled = currentQuestionIndex === 0;
+    nextBtn.disabled = currentQuestionIndex === currentQuestions.length - 1;
+    deleteQuestionBtn.style.display = token ? 'inline-block' : 'none';
+    editQuestionBtn.style.display = token ? 'inline-block' : 'none';
+  } else {
+    questionEl.textContent = 'Quiz Completed!';
+    optionsEl.innerHTML = '';
+    restartBtn.style.display = 'inline-block';
+    prevBtn.style.display = 'none';
+    nextBtn.style.display = 'none';
+    deleteQuestionBtn.style.display = 'none';
+    editQuestionBtn.style.display = 'none';
+  }
+}
+
+function selectOption(el, correct, explanation) {
+  document.querySelectorAll('.option').forEach(o => o.style.pointerEvents = 'none');
+  if (el.textContent.trim() === correct.trim()) {
+    el.classList.add('correct');
+    score++;
+  } else {
+    el.classList.add('wrong');
+    document.querySelectorAll('.option').forEach(o => {
+      if (o.textContent.trim() === correct.trim()) o.classList.add('correct');
+    });
+  }
+  if (explanation) {
+    explanationText.textContent = `Explanation: ${explanation}`;
+    explanationText.style.display = 'block';
+  }
+  attempts++;
+  scoreboardEl.textContent = `Score: ${score} | Attempts: ${attempts}`;
+}
+
+// Admin Panel Toggle
+function toggleAdmin(loggedIn) {
+  loginForm.style.display = loggedIn ? 'none' : 'block';
+  adminPanel.style.display = loggedIn ? 'block' : 'none';
+  logoutSection.style.display = loggedIn ? 'block' : 'none';
+
+  // Supreme Admin Controls
+  addNewAdminBtn.style.display = (loggedIn && isSupreme) ? 'inline-block' : 'none';
+  deleteAdminSection.style.display = (loggedIn && isSupreme) ? 'block' : 'none';
+
+  // Bulk Upload Controls
+  bulkUploadSection.style.display = loggedIn ? 'block' : 'none';
+
+  fetchSubjects();
+}
+
+// Bulk Upload Parser
 function parseBulkText(text) {
   const blocks = text.trim().split(/\n\s*\n/);
-  const parsed = [];
-  blocks.forEach(block => {
-    const lines = block.split("\n").map(l => l.trim()).filter(l => l);
+  return blocks.map(block => {
+    const lines = block.split('\n').map(l => l.trim()).filter(Boolean);
     if (lines.length >= 6) {
-      const question = lines[0].replace(/^Q[\.\:0-9]*\s*/i, '');
-      const options = [
-        lines[1].replace(/^[A-D][\)\.\:\-]?\s*/i, ''),
-        lines[2].replace(/^[A-D][\)\.\:\-]?\s*/i, ''),
-        lines[3].replace(/^[A-D][\)\.\:\-]?\s*/i, ''),
-        lines[4].replace(/^[A-D][\)\.\:\-]?\s*/i, '')
-      ];
-      const ansLine = lines.find(l => /^ans(wer)?|^correct/i.test(l));
-      const correct = ansLine ? ansLine.split(/[\:\-]/)[1]?.trim() : '';
-      const explanationLine = lines.find(l => /^explanation/i.test(l));
-      const explanation = explanationLine ? explanationLine.split(/[\:\-]/)[1]?.trim() : '';
-
-      parsed.push({
+      return {
         subject: bulkSubject.value.trim(),
         chapter: bulkChapter.value.trim(),
-        question, options, correct, explanation
-      });
+        question: lines[0],
+        options: lines.slice(1, 5),
+        correct: lines[5].replace(/^Answer[:\-]?\s*/i, ''),
+        explanation: lines[6] || ''
+      };
     }
-  });
-  return parsed;
+    return null;
+  }).filter(Boolean);
 }
 
+// Bulk Upload Handlers
 previewBulkBtn.onclick = () => {
+  if (!bulkSubject.value || !bulkChapter.value) return alert('Enter Subject and Chapter first!');
   bulkQuestions = parseBulkText(bulkTextarea.value);
-  if (!bulkSubject.value || !bulkChapter.value) return alert('Enter subject & chapter!');
   if (!bulkQuestions.length) return alert('No valid questions found!');
-  bulkPreview.innerHTML = '<h3>Preview:</h3>' + bulkQuestions.map((q, i) => `
-    <div style="border:1px solid #FFD700; padding:8px; margin:5px;">
-      <b>Q${i+1}:</b> ${q.question}<br>
-      ${q.options.map((o,j) => `<div>${String.fromCharCode(65+j)}) ${o}</div>`).join('')}
-      <b>Answer:</b> ${q.correct}<br>
-      <i>${q.explanation || ''}</i>
-    </div>
-  `).join('');
+  bulkPreview.innerHTML = bulkQuestions.map((q, i) =>
+    `<div><b>Q${i+1}:</b> ${q.question}<br>${q.options.join('<br>')}<br><b>Answer:</b> ${q.correct}<br><i>${q.explanation}</i></div>`
+  ).join('<hr>');
   uploadBulkBtn.style.display = 'inline-block';
 };
 
 uploadBulkBtn.onclick = async () => {
   const toUpload = bulkQuestions.filter(q => q.subject && q.chapter && q.question && q.options.length === 4 && q.correct);
   if (!toUpload.length) return alert('No valid questions to upload.');
-  uploadBulkBtn.disabled = true;
-  uploadBulkBtn.innerText = 'Uploading...';
-
   try {
     const res = await fetch(`${BASE_URL}/api/questions/bulk`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify({ questions: toUpload })
     });
-
     if (res.status === 404) {
       alert("⚠️ Bulk upload feature not enabled on server. Please contact admin.");
       return;
     }
-
     const data = await res.json();
     if (res.ok) {
       alert(`✅ Uploaded ${data.insertedCount || toUpload.length} questions.`);
@@ -389,15 +204,10 @@ uploadBulkBtn.onclick = async () => {
       bulkPreview.innerHTML = '';
       uploadBulkBtn.style.display = 'none';
       fetchSubjects();
-      subjectSelect.value = bulkSubject.value.trim();
-      subjectSelect.dispatchEvent(new Event('change'));
     } else {
       alert(data.error || 'Bulk upload failed.');
     }
   } catch {
     alert('⚠️ Could not connect to server. Bulk upload may not be enabled.');
-  } finally {
-    uploadBulkBtn.disabled = false;
-    uploadBulkBtn.innerText = 'Upload All';
   }
 };
