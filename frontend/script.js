@@ -259,10 +259,7 @@ function toggleAdmin(loggedIn) {
   deleteAdminSection.style.display = (loggedIn && isSupreme) ? 'block' : 'none';
   deleteSubjectBtn.style.display = subjectSelect.value && loggedIn ? 'inline-block' : 'none';
   deleteChapterBtn.style.display = chapterSelect.value && loggedIn ? 'inline-block' : 'none';
-
-  // ✅ Bulk upload section toggle
   toggleBulkSection(loggedIn);
-
   fetchSubjects();
 }
 
@@ -324,28 +321,46 @@ function toggleBulkSection(show) {
 function parseBulkText(text) {
   const blocks = text.trim().split(/\n\s*\n/);
   const parsed = [];
-  blocks.forEach(block => {
-    const lines = block.split("\n").map(l => l.trim()).filter(l => l);
-    if (lines.length >= 6) {
-      const question = lines[0].replace(/^Q[\.\:0-9]*\s*/i, '');
-      const options = [
-        lines[1].replace(/^[A-D][\)\.\:\-]?\s*/i, ''),
-        lines[2].replace(/^[A-D][\)\.\:\-]?\s*/i, ''),
-        lines[3].replace(/^[A-D][\)\.\:\-]?\s*/i, ''),
-        lines[4].replace(/^[A-D][\)\.\:\-]?\s*/i, '')
-      ];
-      const ansLine = lines.find(l => /^ans(wer)?|^correct/i.test(l));
-      const correct = ansLine ? ansLine.split(/[\:\-]/)[1]?.trim() : '';
-      const explanationLine = lines.find(l => /^explanation/i.test(l));
-      const explanation = explanationLine ? explanationLine.split(/[\:\-]/)[1]?.trim() : '';
 
-      parsed.push({
-        subject: bulkSubject.value.trim(),
-        chapter: bulkChapter.value.trim(),
-        question, options, correct, explanation
-      });
+  blocks.forEach(block => {
+    const lines = block.split("\n")
+      .map(l => l.trim())
+      .filter(l => l);
+
+    if (lines.length >= 5) {
+      const question = lines[0].replace(/^[\(\[\{]?[A-Za-z0-9अ-ह०-९\.\:\-\s]+[\)\]\}]?\s*/u, '');
+      const options = lines.slice(1, 5).map(o =>
+        o.replace(/^[\(\[\{]?[A-Za-zअ-ह0-9०-९\.\:\-\s]+[\)\]\}]?\s*/u, '')
+      );
+
+      const ansLine = lines.find(l =>
+        /(ans(wer)?|correct|सही\s*उत्तर|उत्तर)/iu.test(l)
+      );
+      let correct = '';
+      if (ansLine) {
+        correct = ansLine
+          .replace(/.*[:\-]\s*/u, '')
+          .replace(/^\((.)\)/, '$1')
+          .trim();
+      }
+
+      const explanationLine = lines.find(l =>
+        /(explanation|व्याख्या|कारण)/iu.test(l)
+      );
+      const explanation = explanationLine
+        ? explanationLine.replace(/.*[:\-]\s*/u, '').trim()
+        : '';
+
+      if (question && options.length === 4 && correct) {
+        parsed.push({
+          subject: bulkSubject.value.trim(),
+          chapter: bulkChapter.value.trim(),
+          question, options, correct, explanation
+        });
+      }
     }
   });
+
   return parsed;
 }
 
