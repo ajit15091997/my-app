@@ -59,6 +59,18 @@
     <input type="text" id="answerExplanation" placeholder="Explanation for Correct Answer (optional)"><br>
     <button id="addQuestion">Add Question</button><br><br>
 
+    <!-- ✅ Bulk Upload Section (NEW) -->
+    <div id="bulkUploadSection" style="display:none; margin-top:30px;">
+      <h2>Bulk Question Upload</h2>
+      <input type="text" id="bulkSubject" placeholder="Subject Name (required)"><br>
+      <input type="text" id="bulkChapter" placeholder="Chapter Name (required)"><br>
+      <textarea id="bulkTextarea" placeholder="Paste questions here. Separate questions by a blank line." rows="12" style="width:100%;"></textarea><br>
+      <button id="previewBulkBtn">Preview Questions</button>
+      <button id="uploadBulkBtn" style="display:none;">Upload All</button>
+      <div id="bulkPreview" style="margin-top:16px;"></div>
+    </div>
+    <!-- ✅ End Bulk Upload Section -->
+
     <!-- Only Supreme Admin Sees This -->
     <button id="addNewAdminBtn" style="display:none;">Add New Admin</button>
   </div>
@@ -114,4 +126,4 @@
 
 <script src="script.js"></script>
 </body>
-  </html>
+</html>
