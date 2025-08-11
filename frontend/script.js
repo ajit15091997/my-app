@@ -1,5 +1,5 @@
 // script.js (final with flexible bulk parser)
-const BASE_URL = "https://my-app-v7hb.onrender.com";
+const BASE_URL = "https://my-app-1-vg5k.onrender.com";
 let token = null, isSupreme = false;
 const subjectSelect = document.getElementById('subjectSelect');
 const chapterSelect = document.getElementById('chapterSelect');
