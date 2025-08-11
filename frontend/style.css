@@ -38,7 +38,7 @@ h3 {
   margin-bottom: 20px;
 }
 
-select, input[type="text"], input[type="number"], input[type="password"] {
+select, input[type="text"], input[type="number"], input[type="password"], textarea {
   width: 100%;
   padding: 12px;
   margin-bottom: 15px;
@@ -49,7 +49,7 @@ select, input[type="text"], input[type="number"], input[type="password"] {
   color: #EAEAEA;
 }
 
-select:focus, input:focus {
+select:focus, input:focus, textarea:focus {
   outline: none;
   border-color: #87CEEB;
   box-shadow: 0 0 5px rgba(135, 206, 235, 0.5);
@@ -149,7 +149,7 @@ footer {
   padding: 15px 0;
 }
 
-/* ✅ Supreme Admin Section: Delete Admin Styling */
+/* Supreme Admin Section: Delete Admin Styling */
 #deleteAdminSection {
   margin-top: 30px;
   background-color: #1C1C2E;
@@ -192,6 +192,18 @@ footer {
   background-color: #FF4C4C;
 }
 
+/* Bulk textarea specific but matching existing theme */
+.bulk-textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #FFD700;
+  border-radius: 8px;
+  background-color: #0A1128;
+  color: #EAEAEA;
+  font-size: 15px;
+  resize: vertical;
+}
+
 @media (max-width: 600px) {
   .quiz-container {
     padding: 15px;
@@ -201,4 +213,4 @@ footer {
     width: 100%;
     margin-top: 10px;
   }
-  }
+}
