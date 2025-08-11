@@ -201,4 +201,72 @@ footer {
     width: 100%;
     margin-top: 10px;
   }
+}
+
+/* ===================== *
+   Bulk Upload Section
+   ===================== */
+
+/* Keep styles visually consistent with the theme */
+#bulkUploadSection h2 {
+  color: #FFD700;
+  text-align: left;
+  margin-bottom: 10px;
+}
+
+#bulkTextarea {
+  background-color: #0A1128;
+  border: 2px solid #FFD700;
+  color: #EAEAEA;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  resize: vertical;
+}
+
+/* Preview container */
+#bulkPreview {
+  margin-top: 12px;
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid #FFD700;
+  padding: 10px;
+  border-radius: 8px;
+  background: #1C1C2E;
+}
+
+/* Individual preview items */
+.bulk-preview-item {
+  border-bottom: 1px dashed rgba(255,215,0,0.15);
+  padding: 8px 0;
+}
+
+.bulk-preview-item .qtext {
+  font-weight: 600;
+  color: #EAEAEA;
+}
+
+.bulk-preview-item .opts div {
+  margin-left: 8px;
+  color: #EAEAEA;
+}
+
+.bulk-preview-item .meta {
+  margin-top:6px;
+  color: #87CEEB;
+  font-size: 13px;
+}
+
+.bulk-error {
+  color: #FF6F61;
+  font-weight: 700;
+}
+
+/* Small screens: make textarea comfortable */
+@media (max-width: 480px) {
+  #bulkTextarea {
+    font-size: 13px;
+    padding: 10px;
   }
+  #bulkPreview { max-height: 240px; }
+}
