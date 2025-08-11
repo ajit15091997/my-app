@@ -98,7 +98,6 @@ function loadQuestion() {
   }
 }
 
-// ✅ Updated Logic
 function selectOption(el, correct, explanation) {
   document.querySelectorAll('.option').forEach(o => {
     o.style.pointerEvents = 'none';
@@ -191,21 +190,15 @@ editQuestionBtn.onclick = () => {
 };
 
 loginBtn.onclick = async () => {
-  console.log('🔐 Login attempt started');
-  const username = usernameInput.value.trim();
-  const password = passwordInput.value.trim();
-  console.log('Username entered:', username);
-
   try {
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value.trim();
     const res = await fetch(`${BASE_URL}/api/admin/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
     });
-
     const data = await res.json();
-    console.log('📨 Server response:', data);
-
     if (res.ok) {
       token = data.token;
       isSupreme = data.supreme;
@@ -213,10 +206,8 @@ loginBtn.onclick = async () => {
       alert('✅ Logged in successfully!');
     } else {
       loginError.innerText = data.error || '❌ Login failed';
-      console.log('❌ Login failed:', data.error || 'Unknown error');
     }
-  } catch (err) {
-    console.log('🔥 Login fetch error:', err);
+  } catch {
     loginError.innerText = "⚠️ Unable to connect to server";
   }
 };
@@ -266,9 +257,11 @@ function toggleAdmin(loggedIn) {
   adminPanel.style.display = logoutSection.style.display = loggedIn ? 'block' : 'none';
   addNewAdminBtn.style.display = (loggedIn && isSupreme) ? 'inline-block' : 'none';
   deleteAdminSection.style.display = (loggedIn && isSupreme) ? 'block' : 'none';
-
   deleteSubjectBtn.style.display = subjectSelect.value && loggedIn ? 'inline-block' : 'none';
   deleteChapterBtn.style.display = chapterSelect.value && loggedIn ? 'inline-block' : 'none';
+
+  // ✅ Bulk upload section toggle
+  toggleBulkSection(loggedIn);
 
   fetchSubjects();
 }
@@ -311,4 +304,100 @@ prevBtn.onclick = () => {
 window.onload = () => {
   fetchSubjects();
   toggleAdmin(false);
+};
+
+/* ---------------- BULK UPLOAD FEATURE BELOW ---------------- */
+const bulkUploadSection = document.getElementById('bulkUploadSection');
+const bulkSubject = document.getElementById('bulkSubject');
+const bulkChapter = document.getElementById('bulkChapter');
+const bulkTextarea = document.getElementById('bulkTextarea');
+const previewBulkBtn = document.getElementById('previewBulkBtn');
+const uploadBulkBtn = document.getElementById('uploadBulkBtn');
+const bulkPreview = document.getElementById('bulkPreview');
+
+let bulkQuestions = [];
+
+function toggleBulkSection(show) {
+  bulkUploadSection.style.display = show ? 'block' : 'none';
+}
+
+function parseBulkText(text) {
+  const blocks = text.trim().split(/\n\s*\n/);
+  const parsed = [];
+  blocks.forEach(block => {
+    const lines = block.split("\n").map(l => l.trim()).filter(l => l);
+    if (lines.length >= 6) {
+      const question = lines[0].replace(/^Q[\.\:0-9]*\s*/i, '');
+      const options = [
+        lines[1].replace(/^[A-D][\)\.\:\-]?\s*/i, ''),
+        lines[2].replace(/^[A-D][\)\.\:\-]?\s*/i, ''),
+        lines[3].replace(/^[A-D][\)\.\:\-]?\s*/i, ''),
+        lines[4].replace(/^[A-D][\)\.\:\-]?\s*/i, '')
+      ];
+      const ansLine = lines.find(l => /^ans(wer)?|^correct/i.test(l));
+      const correct = ansLine ? ansLine.split(/[\:\-]/)[1]?.trim() : '';
+      const explanationLine = lines.find(l => /^explanation/i.test(l));
+      const explanation = explanationLine ? explanationLine.split(/[\:\-]/)[1]?.trim() : '';
+
+      parsed.push({
+        subject: bulkSubject.value.trim(),
+        chapter: bulkChapter.value.trim(),
+        question, options, correct, explanation
+      });
+    }
+  });
+  return parsed;
+}
+
+previewBulkBtn.onclick = () => {
+  bulkQuestions = parseBulkText(bulkTextarea.value);
+  if (!bulkSubject.value || !bulkChapter.value) return alert('Enter subject & chapter!');
+  if (!bulkQuestions.length) return alert('No valid questions found!');
+  bulkPreview.innerHTML = '<h3>Preview:</h3>' + bulkQuestions.map((q, i) => `
+    <div style="border:1px solid #FFD700; padding:8px; margin:5px;">
+      <b>Q${i+1}:</b> ${q.question}<br>
+      ${q.options.map((o,j) => `<div>${String.fromCharCode(65+j)}) ${o}</div>`).join('')}
+      <b>Answer:</b> ${q.correct}<br>
+      <i>${q.explanation || ''}</i>
+    </div>
+  `).join('');
+  uploadBulkBtn.style.display = 'inline-block';
+};
+
+uploadBulkBtn.onclick = async () => {
+  const toUpload = bulkQuestions.filter(q => q.subject && q.chapter && q.question && q.options.length === 4 && q.correct);
+  if (!toUpload.length) return alert('No valid questions to upload.');
+  uploadBulkBtn.disabled = true;
+  uploadBulkBtn.innerText = 'Uploading...';
+
+  try {
+    const res = await fetch(`${BASE_URL}/api/questions/bulk`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ questions: toUpload })
+    });
+
+    if (res.status === 404) {
+      alert("⚠️ Bulk upload feature not enabled on server. Please contact admin.");
+      return;
+    }
+
+    const data = await res.json();
+    if (res.ok) {
+      alert(`✅ Uploaded ${data.insertedCount || toUpload.length} questions.`);
+      bulkTextarea.value = '';
+      bulkPreview.innerHTML = '';
+      uploadBulkBtn.style.display = 'none';
+      fetchSubjects();
+      subjectSelect.value = bulkSubject.value.trim();
+      subjectSelect.dispatchEvent(new Event('change'));
+    } else {
+      alert(data.error || 'Bulk upload failed.');
+    }
+  } catch {
+    alert('⚠️ Could not connect to server. Bulk upload may not be enabled.');
+  } finally {
+    uploadBulkBtn.disabled = false;
+    uploadBulkBtn.innerText = 'Upload All';
+  }
 };
