@@ -269,6 +269,125 @@ function toggleAdmin(loggedIn) {
 
   deleteSubjectBtn.style.display = subjectSelect.value && loggedIn ? 'inline-block' : 'none';
   deleteChapterBtn.style.display = chapterSelect.value && loggedIn ? 'inline-block' : 'none';
+  /* ---------------- BULK UPLOAD FEATURE BELOW ---------------- */
+const bulkUploadSection = document.getElementById('bulkUploadSection');
+const bulkSubject = document.getElementById('bulkSubject');
+const bulkChapter = document.getElementById('bulkChapter');
+const bulkTextarea = document.getElementById('bulkTextarea');
+const previewBulkBtn = document.getElementById('previewBulkBtn');
+const uploadBulkBtn = document.getElementById('uploadBulkBtn');
+const bulkPreview = document.getElementById('bulkPreview');
+
+let bulkQuestions = [];
+
+function toggleBulkSection(show) {
+  if (bulkUploadSection) {
+    bulkUploadSection.style.display = show ? 'block' : 'none';
+  }
+}
+
+// Flexible parser for Hindi/English formats (A), (1), (१), etc.
+function parseBulkText(text) {
+  const blocks = text.trim().split(/\n\s*\n/);
+  const parsed = [];
+
+  blocks.forEach(block => {
+    const lines = block.split("\n").map(l => l.trim()).filter(l => l);
+
+    if (lines.length >= 6) {
+      const question = lines[0].replace(/^(Q\s*[\.\:\-\d०-९]*)\s*/i, '').trim();
+
+      const options = lines.slice(1, 5).map(opt =>
+        opt.replace(/^[A-Da-d१२३४१-४\d०-९\(\)\.\:\-\s]+/u, '').trim()
+      );
+
+      const ansLine = lines.find(l =>
+        /^सही\s*उत्तर|^उत्तर|^Answer|^Ans|^Correct/i.test(l)
+      );
+
+      let correct = '';
+      if (ansLine) {
+        const ansText = ansLine.split(/[:\-–]/)[1]?.trim() || '';
+        correct = ansText.replace(/^[A-Da-d\d०-९\.\)\s]+/, '').trim();
+      }
+
+      const expLine = lines.find(l => /^Explanation|^व्याख्या/i.test(l));
+      const explanation = expLine ? expLine.split(/[:\-–]/)[1]?.trim() : '';
+
+      if (question && options.length === 4 && correct) {
+        parsed.push({
+          subject: bulkSubject.value.trim(),
+          chapter: bulkChapter.value.trim(),
+          question,
+          options,
+          correct,
+          explanation
+        });
+      }
+    }
+  });
+
+  return parsed;
+}
+
+// Preview bulk questions
+previewBulkBtn.onclick = () => {
+  if (!bulkSubject.value || !bulkChapter.value) return alert('Enter subject & chapter!');
+  bulkQuestions = parseBulkText(bulkTextarea.value);
+  if (!bulkQuestions.length) return alert('No valid questions found!');
+  bulkPreview.innerHTML = '<h3>Preview:</h3>' +
+    bulkQuestions.map((q, i) => `
+    <div style="border:1px solid #FFD700; padding:8px; margin:5px;">
+      <b>Q${i + 1}:</b> ${q.question}<br>
+      ${q.options.map((o, j) => `<div>${String.fromCharCode(65 + j)}) ${o}</div>`).join('')}
+      <b>Answer:</b> ${q.correct}<br>
+      <i>${q.explanation || ''}</i>
+    </div>
+  `).join('');
+  uploadBulkBtn.style.display = 'inline-block';
+};
+
+// Upload bulk questions
+uploadBulkBtn.onclick = async () => {
+  const toUpload = bulkQuestions.filter(q =>
+    q.subject && q.chapter && q.question && q.options.length === 4 && q.correct
+  );
+  if (!toUpload.length) return alert('No valid questions to upload.');
+  uploadBulkBtn.disabled = true;
+  uploadBulkBtn.innerText = 'Uploading...';
+
+  try {
+    const res = await fetch(`${BASE_URL}/api/questions/bulk`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ questions: toUpload })
+    });
+
+    if (res.status === 404) {
+      alert("⚠️ Bulk upload feature not enabled on server.");
+      return;
+    }
+
+    const data = await res.json();
+    if (res.ok) {
+      alert(`✅ Uploaded ${data.insertedCount || toUpload.length} questions.`);
+      bulkTextarea.value = '';
+      bulkPreview.innerHTML = '';
+      uploadBulkBtn.style.display = 'none';
+      fetchSubjects();
+      subjectSelect.value = bulkSubject.value.trim();
+      subjectSelect.dispatchEvent(new Event('change'));
+    } else {
+      alert(data.error || 'Bulk upload failed.');
+    }
+  } catch (err) {
+    console.error(err);
+    alert('⚠️ Could not connect to server.');
+  } finally {
+    uploadBulkBtn.disabled = false;
+    uploadBulkBtn.innerText = 'Upload All';
+  }
+};
 
   fetchSubjects();
 }
