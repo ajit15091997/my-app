@@ -98,7 +98,6 @@ function loadQuestion() {
   }
 }
 
-// ✅ Updated Logic
 function selectOption(el, correct, explanation) {
   document.querySelectorAll('.option').forEach(o => {
     o.style.pointerEvents = 'none';
@@ -269,7 +268,46 @@ function toggleAdmin(loggedIn) {
 
   deleteSubjectBtn.style.display = subjectSelect.value && loggedIn ? 'inline-block' : 'none';
   deleteChapterBtn.style.display = chapterSelect.value && loggedIn ? 'inline-block' : 'none';
-  /* ---------------- BULK UPLOAD FEATURE BELOW ---------------- */
+
+  fetchSubjects();
+}
+
+subjectSelect.onchange = async () => {
+  deleteSubjectBtn.style.display = subjectSelect.value && token ? 'inline-block' : 'none';
+  const chaps = await fetchChapters(subjectSelect.value);
+  chapterSelect.disabled = false;
+  chapterSelect.innerHTML = '<option>Select Chapter</option>';
+  chaps.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = opt.innerText = c;
+    chapterSelect.appendChild(opt);
+  });
+};
+
+chapterSelect.onchange = async () => {
+  deleteChapterBtn.style.display = chapterSelect.value && token ? 'inline-block' : 'none';
+  currentQuestions = await fetchQuestions(subjectSelect.value, chapterSelect.value);
+  currentQuestionIndex = attempts = score = 0;
+  quizArea.style.display = 'block';
+  restartBtn.style.display = 'inline-block';
+  loadQuestion();
+};
+
+nextBtn.onclick = () => {
+  if (currentQuestionIndex < currentQuestions.length - 1) {
+    currentQuestionIndex++;
+    loadQuestion();
+  }
+};
+
+prevBtn.onclick = () => {
+  if (currentQuestionIndex > 0) {
+    currentQuestionIndex--;
+    loadQuestion();
+  }
+};
+
+/* ---------------- BULK UPLOAD FEATURE BELOW ---------------- */
 const bulkUploadSection = document.getElementById('bulkUploadSection');
 const bulkSubject = document.getElementById('bulkSubject');
 const bulkChapter = document.getElementById('bulkChapter');
@@ -286,7 +324,6 @@ function toggleBulkSection(show) {
   }
 }
 
-// Flexible parser for Hindi/English formats (A), (1), (१), etc.
 function parseBulkText(text) {
   const blocks = text.trim().split(/\n\s*\n/);
   const parsed = [];
@@ -330,7 +367,6 @@ function parseBulkText(text) {
   return parsed;
 }
 
-// Preview bulk questions
 previewBulkBtn.onclick = () => {
   if (!bulkSubject.value || !bulkChapter.value) return alert('Enter subject & chapter!');
   bulkQuestions = parseBulkText(bulkTextarea.value);
@@ -347,7 +383,6 @@ previewBulkBtn.onclick = () => {
   uploadBulkBtn.style.display = 'inline-block';
 };
 
-// Upload bulk questions
 uploadBulkBtn.onclick = async () => {
   const toUpload = bulkQuestions.filter(q =>
     q.subject && q.chapter && q.question && q.options.length === 4 && q.correct
@@ -386,44 +421,6 @@ uploadBulkBtn.onclick = async () => {
   } finally {
     uploadBulkBtn.disabled = false;
     uploadBulkBtn.innerText = 'Upload All';
-  }
-};
-
-  fetchSubjects();
-}
-
-subjectSelect.onchange = async () => {
-  deleteSubjectBtn.style.display = subjectSelect.value && token ? 'inline-block' : 'none';
-  const chaps = await fetchChapters(subjectSelect.value);
-  chapterSelect.disabled = false;
-  chapterSelect.innerHTML = '<option>Select Chapter</option>';
-  chaps.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = opt.innerText = c;
-    chapterSelect.appendChild(opt);
-  });
-};
-
-chapterSelect.onchange = async () => {
-  deleteChapterBtn.style.display = chapterSelect.value && token ? 'inline-block' : 'none';
-  currentQuestions = await fetchQuestions(subjectSelect.value, chapterSelect.value);
-  currentQuestionIndex = attempts = score = 0;
-  quizArea.style.display = 'block';
-  restartBtn.style.display = 'inline-block';
-  loadQuestion();
-};
-
-nextBtn.onclick = () => {
-  if (currentQuestionIndex < currentQuestions.length - 1) {
-    currentQuestionIndex++;
-    loadQuestion();
-  }
-};
-
-prevBtn.onclick = () => {
-  if (currentQuestionIndex > 0) {
-    currentQuestionIndex--;
-    loadQuestion();
   }
 };
 
