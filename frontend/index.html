@@ -58,6 +58,25 @@
     <input type="text" id="correctAnswer" placeholder="Correct Answer"><br>
     <input type="text" id="answerExplanation" placeholder="Explanation for Correct Answer (optional)"><br>
     <button id="addQuestion">Add Question</button><br><br>
+    <!-- Bulk Upload Section (add inside Admin Panel) -->
+<div id="bulkUploadSection" style="display:none; margin-top:20px; border:1px solid #FFD700; padding:15px; border-radius:5px;">
+  <h2>📤 Bulk Question Upload</h2>
+  
+  <label>Subject:</label>
+  <input type="text" id="bulkSubject" placeholder="Enter Subject" style="width:100%; padding:5px; margin-bottom:10px;">
+  
+  <label>Chapter:</label>
+  <input type="text" id="bulkChapter" placeholder="Enter Chapter" style="width:100%; padding:5px; margin-bottom:10px;">
+  
+  <label>Paste Questions Here:</label>
+  <textarea id="bulkTextarea" placeholder="Paste questions with options, answers & explanations..." 
+            style="width:100%; height:200px; padding:5px; margin-bottom:10px;"></textarea>
+  
+  <button id="previewBulkBtn" style="padding:8px 15px; background:#FFD700; border:none; cursor:pointer;">Preview</button>
+  <button id="uploadBulkBtn" style="padding:8px 15px; background:green; color:white; border:none; display:none; cursor:pointer;">Upload All</button>
+  
+  <div id="bulkPreview" style="margin-top:15px;"></div>
+</div>
 
     <!-- Only Supreme Admin Sees This -->
     <button id="addNewAdminBtn" style="display:none;">Add New Admin</button>
