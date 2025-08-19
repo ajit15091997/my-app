@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A.K. Quiz - Home</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="quiz-container">
+    <!-- App Header -->
+    <header class="app-header">
+      <h2 class="brand">A.K.</h2>
+      <h1 class="app-title">MCQ QUIZ APP</h1>
+    </header>
+
+    <!-- Quiz Selectors -->
+    <section id="selectors" class="selectors">
+      <select id="subjectSelect">
+        <option value="">Select Subject</option>
+      </select>
+      <select id="chapterSelect" disabled>
+        <option value="">Select Chapter</option>
+      </select>
+      <div class="selector-actions">
+        <button id="deleteChapter" style="display:none;">Delete Chapter</button>
+        <button id="deleteSubject" style="display:none;">Delete Subject</button>
+      </div>
+    </section>
+
+    <!-- Quiz Area -->
+    <section id="quizArea" class="quiz-area">
+      <div id="question" class="question-text"></div>
+      <div id="options" class="options-container"></div>
+
+      <div id="explanationSection" class="explanation">
+        <p id="explanationText" style="display:none;"></p>
+      </div>
+
+      <div id="navigationButtons" class="navigation">
+        <button id="prevBtn" style="display:none;">Previous</button>
+        <button id="nextBtn" style="display:none;">Next</button>
+      </div>
+
+      <div id="scoreboard" class="scoreboard"></div>
+
+      <div class="quiz-controls">
+        <button id="restart" style="display:none;">Restart Quiz</button>
+        <button id="deleteQuestion" style="display:none;">Delete Current Question</button>
+        <button id="editQuestion" style="display:none;">Edit Current Question</button>
+      </div>
+    </section>
+
+    <!-- Bulk Upload Feature (Admin Only) -->
+    <section id="bulkUploadSection" class="bulk-upload" style="display:none;">
+      <h2>Bulk Question Upload</h2>
+      <input type="text" id="bulkSubject" placeholder="Subject Name"><br>
+      <input type="text" id="bulkChapter" placeholder="Chapter Name"><br>
+
+      <!-- Large Textarea -->
+      <textarea id="bulkTextarea" placeholder="Paste 100+ questions here with options, correct answers & optional explanations"></textarea><br>
+
+      <div class="bulk-actions">
+        <button id="previewBulk">Preview Questions</button>
+        <button id="uploadBulk" style="display:none;">Upload All</button>
+      </div>
+
+      <!-- Bulk Preview Section -->
+      <div id="bulkPreviewContainer" style="display:none;">
+        <h3>Preview Questions</h3>
+        <div id="bulkPreviewList"></div>
+        <button id="editBulk">Edit Before Upload</button>
+      </div>
+    </section>
+
+    <!-- Admin Panel -->
+    <section id="adminPanel" class="admin-panel" style="display:none;">
+      <h2>Add Single Question</h2>
+      <input type="text" id="newSubject" placeholder="Subject Name"><br>
+      <input type="text" id="newChapter" placeholder="Chapter Name"><br>
+      <input type="text" id="newQuestion" placeholder="Question"><br>
+      <input type="text" id="option1" placeholder="Option 1"><br>
+      <input type="text" id="option2" placeholder="Option 2"><br>
+      <input type="text" id="option3" placeholder="Option 3"><br>
+      <input type="text" id="option4" placeholder="Option 4"><br>
+      <input type="text" id="correctAnswer" placeholder="Correct Answer"><br>
+      <input type="text" id="answerExplanation" placeholder="Explanation (optional)"><br>
+      <button id="addQuestion">Add Question</button><br><br>
+
+      <!-- Only Supreme Admin Sees This -->
+      <button id="addNewAdminBtn" style="display:none;">Add New Admin</button>
+    </section>
+
+    <!-- Add New Admin Form -->
+    <section id="addAdminForm" class="admin-form" style="display:none;">
+      <h2>Add New Admin</h2>
+      <input type="text" id="newAdminUsername" placeholder="Enter Username"><br>
+      <input type="password" id="newAdminPassword" placeholder="Enter Password"><br>
+      <button id="createAdminBtn">Create Admin</button>
+      <button id="cancelCreateAdminBtn">Cancel</button>
+    </section>
+
+    <!-- Delete Admin Section -->
+    <section id="deleteAdminSection" class="delete-admin" style="display:none;">
+      <h3>Delete Admins</h3>
+      <ul id="adminList"></ul>
+      <button id="deleteSelectedAdminsBtn">Delete Selected</button>
+    </section>
+
+    <!-- Edit Form -->
+    <section id="editForm" class="edit-form" style="display:none;">
+      <h2>Edit Question</h2>
+      <input type="text" id="editQuestionText"><br>
+      <input type="text" id="editOption1"><br>
+      <input type="text" id="editOption2"><br>
+      <input type="text" id="editOption3"><br>
+      <input type="text" id="editOption4"><br>
+      <input type="text" id="editCorrectAnswer"><br>
+      <input type="text" id="editExplanation"><br>
+      <button id="saveEdit">Save Changes</button>
+      <button id="cancelEdit">Cancel</button>
+    </section>
+
+    <!-- Admin Login Form -->
+    <section id="loginForm" class="login-form">
+      <h3>Admin Login</h3>
+      <input type="text" id="username" placeholder="Username"><br>
+      <input type="password" id="password" placeholder="Password"><br>
+      <button id="loginBtn">Login</button>
+      <p id="loginError" class="error-msg" style="color:red;"></p>
+    </section>
+
+    <!-- Admin Logout Section -->
+    <section id="logoutSection" class="logout-section" style="display:none;">
+      <button id="logoutBtn">Logout</button>
+    </section>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <p>&copy; 2025 A.K. Quiz. All rights reserved.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+                                                                                       </html>
