@@ -174,7 +174,39 @@ addQuestionBtn.onclick = async () => {
 
 // -------------------- BULK FEATURE --------------------
 let bulkQuestions = [];
+function parseBulkInput(raw) {
+  const lines = raw.split("\n").map(l => l.trim()).filter(l => l);
+  let questions = [];
+  let current = null;
 
+  lines.forEach(line => {
+    // ✅ Question line (starts with number + dot)
+    if (/^\d+\./.test(line)) {
+      if (current) questions.push(current);
+      current = { 
+        question: line.replace(/^\d+\.\s*/, ""), 
+        options: [], 
+        correct: "", 
+        explanation: "" 
+      };
+    } 
+    // ✅ Option line (starts with A) B) C) D) etc.)
+    else if (/^[A-D]\)/.test(line)) {
+      current?.options.push(line.replace(/^[A-D]\)\s*/, ""));
+    } 
+    // ✅ Correct answer line (सही उत्तर:)
+    else if (line.startsWith("सही उत्तर")) {
+      current.correct = line.split(":").pop().trim();
+    } 
+    // ✅ Explanation (optional, अगर future mein add karna chaho)
+    else if (line.startsWith("व्याख्या") || line.toLowerCase().startsWith("explanation")) {
+      current.explanation = line.split(":").pop().trim();
+    }
+  });
+
+  if (current) questions.push(current);
+  return questions;
+}
 function parseBulkInput(raw) {
   const lines = raw.split("\n").map(l => l.trim()).filter(l => l);
   let questions = [];
